@@ -1,21 +1,23 @@
 import { useEffect, useState } from 'react'
 import { call, money, Problem, type Design, type Paged } from '../api/client'
-import { api, day, message, moment, open3d, Pager, Specimen, STATUS, useLoad, type Drive, type Status } from './shared'
+import { api, drivesAt, message, moment, open3d, Pager, Specimen, STATUS, useLoad, type Drive, type Status } from './shared'
 
 const NEXT: Record<Status, readonly [Status, string][]> = {
   NEW: [['CONFIRMED', 'Confirm'], ['CANCELLED', 'Cancel request']], CONFIRMED: [['COMPLETED', 'Mark as completed'], ['CANCELLED', 'Cancel request']], CANCELLED: [['NEW', 'Reopen']], COMPLETED: [],
 }
-export function Requests() {
-  const [status, setStatus] = useState<Status | ''>(''), [typed, setTyped] = useState(''), [q, setQ] = useState(''), [page, setPage] = useState(0), [id, setId] = useState<number | null>(null)
+export function Requests({ find = '' }: { find?: string }) {
+  const [status, setStatus] = useState<Status | ''>(''), [typed, setTyped] = useState(find), [q, setQ] = useState(find), [page, setPage] = useState(0), [id, setId] = useState<number | null>(null)
   useEffect(() => { const t = setTimeout(() => { setQ(typed); setPage(0) }, 250); return () => clearTimeout(t) }, [typed])
   const sum = useLoad<{ requests: Record<Status, number>; designs: number }>('api/admin/summary')
   const list = useLoad<Paged<Drive>>(`api/admin/test-drives?page=${page}${status && `&status=${status}`}${q && `&q=${encodeURIComponent(q)}`}`)
+  useEffect(() => { if (find && list.data?.items.length === 1) setId(list.data.items[0].id) }, [find, list.data])
   const open = list.data?.items.find((d) => d.id === id) ?? null
   const all = sum.data ? Object.values(sum.data.requests).reduce((a, b) => a + b, 0) : null
   const tab = (k: Status | '', label: string, n: number | null) => <button key={k} aria-pressed={status === k} onClick={() => { setStatus(k); setPage(0) }}><strong>{n ?? '·'}</strong>{label}</button>
   return (
     <>
       <div className="tabs" role="group" aria-label="Filter by status">{tab('', 'All', all)}{(Object.keys(STATUS) as Status[]).map((k) => tab(k, STATUS[k], sum.data?.requests[k] ?? null))}</div>
+      <p className="tools"><a href="api/admin/test-drives.csv" download>Download all as CSV</a></p>
       <label className="search"><span>Search name, email or reference</span><input type="search" value={typed} onChange={(e) => setTyped(e.target.value)} /></label>
       {list.error && <p className="bad" role="alert">{list.error}</p>}
       <div className={`split ${open ? 'has-open' : ''}`}>
@@ -24,7 +26,7 @@ export function Requests() {
           <ul className="rows">{list.data?.items.map((d) => (
             <li key={d.id}><button aria-current={d.id === id || undefined} onClick={() => setId(d.id)}>
               <span className="who">{d.name}</span><span className={`mark is-${d.status.toLowerCase()}`}>{STATUS[d.status]}</span>
-              <span className="sub">Wants {day(d.preferredDate)}</span><span className="sub">{moment(d.createdAt)}</span>
+              <span className="sub">{drivesAt(d)}</span><span className="sub">{moment(d.createdAt)}</span>
             </button></li>
           ))}</ul>
           {list.data && <Pager of={list.data} go={setPage} />}
@@ -47,7 +49,7 @@ function Detail({ drive, onClose, onChange, onReload }: { drive: Drive; onClose:
       <button className="back" onClick={onClose}>Close</button>
       <h2>{drive.name}</h2>
       <p><span className={`mark is-${drive.status.toLowerCase()}`}>{STATUS[drive.status]}</span> <span className="sub">Reference {drive.reference}, received {moment(drive.createdAt)}</span></p>
-      <dl><div><dt>Preferred date</dt><dd>{day(drive.preferredDate)}</dd></div><div><dt>Email</dt><dd><a href={`mailto:${drive.email}`}>{drive.email}</a></dd></div>{drive.phone && <div><dt>Phone</dt><dd><a href={`tel:${drive.phone.replace(/[^+\d]/g, '')}`}>{drive.phone}</a></dd></div>}</dl>
+      <dl><div><dt>Test drive</dt><dd>{drivesAt(drive)}</dd></div><div><dt>Email</dt><dd><a href={`mailto:${drive.email}`}>{drive.email}</a></dd></div>{drive.phone && <div><dt>Phone</dt><dd><a href={`tel:${drive.phone.replace(/[^+\d]/g, '')}`}>{drive.phone}</a></dd></div>}</dl>
       {drive.message && <blockquote>{drive.message}</blockquote>}
       {design && <p className="car"><Specimen d={design} /><span>{money(design.totalCents)}</span><a href={open3d(design.code)} target="_blank" rel="noreferrer">See it in 3D</a></p>}
       <label className="area"><span>Staff note</span><textarea rows={4} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} /></label>

@@ -126,7 +126,7 @@ class ApiTest {
         void keepTheirPriceAndPaintAfterTheCatalogueChanges() throws Exception {
             var code = saveDesign();
             jdbc.update("update option_item set active = false, price_cents = 999 where code = 'oxblood'");
-            mvc.perform(get("/api/designs/" + code)).andExpect(jsonPath("$.paint.color").value("#3a0508")).andExpect(jsonPath("$.totalCents").value(15545000));
+            mvc.perform(get("/api/designs/" + code)).andExpect(jsonPath("$.paint.color").value("#3a0508")).andExpect(jsonPath("$.prices.paint").value(240000)).andExpect(jsonPath("$.prices.base").value(14850000)).andExpect(jsonPath("$.totalCents").value(15545000));
             jdbc.update("update option_item set price_cents = 240000 where code = 'oxblood'");
         }
 
@@ -275,6 +275,27 @@ class ApiTest {
             mvc.perform(get("/api/catalog")).andExpect(jsonPath("$.PAINT[?(@.code=='ivory')].priceCents", contains(200000)));
             readAsAdmin("/api/admin/audit").andExpect(jsonPath("$.items[0].detail", containsString("2000.00 EUR")));
             asAdmin(put("/api/admin/options/" + id), edit("Ivory", 1, true, 0)).andExpect(status().isConflict());
+        }
+
+        @Test
+        void readTheReport() throws Exception {
+            saveDesign();
+            saveDesign();
+            request("Ada");
+            readAsAdmin("/api/admin/report").andExpect(jsonPath("$.weeks", hasSize(12))).andExpect(jsonPath("$.weeks[11].designs").value(2)).andExpect(jsonPath("$.weeks[11].requests").value(1))
+                .andExpect(jsonPath("$.weeks[10].requests").value(0)).andExpect(jsonPath("$.options[?(@.name=='Oxblood')].designs", contains(2))).andExpect(jsonPath("$.options[?(@.name=='Ivory')].designs", contains(0)))
+                .andExpect(jsonPath("$.averageTotalCents").value(15545000));
+            jdbc.update("delete from design");
+            readAsAdmin("/api/admin/report").andExpect(jsonPath("$.averageTotalCents").value(nullValue()));
+        }
+
+        @Test
+        void exportRequestsWithoutLettingFormulasRun() throws Exception {
+            send(post("/api/test-drives"), drive(",\"message\":\"say \\\"hi\\\", ok\"").replace("Ada Test", "=HYPERLINK(1)")).andExpect(status().isCreated());
+            var csv = readAsAdmin("/api/admin/test-drives.csv").andExpect(status().isOk()).andExpect(header().string("Content-Disposition", startsWith("attachment"))).andReturn().getResponse().getContentAsString();
+            assertThat(csv).contains("\"'=HYPERLINK(1)\"", "\"say \"\"hi\"\", ok\"");
+            assertThat(csv.lines()).hasSize(2);
+            mvc.perform(get("/api/admin/test-drives.csv")).andExpect(status().isUnauthorized());
         }
 
         @Test
