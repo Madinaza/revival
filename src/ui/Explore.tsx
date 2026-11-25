@@ -17,7 +17,7 @@ function Radios({ name, legend, items, value, onChange, swatch }: { name: string
   )
 }
 export function Explore() {
-  const s = useStore(), close = useRef<HTMLButtonElement>(null), [open, setOpen] = useState(() => innerWidth > 760)
+  const s = useStore(), close = useRef<HTMLButtonElement>(null), [open, setOpen] = useState(() => innerWidth > 760 && innerHeight > 500 && innerWidth > innerHeight), panel = useRef<HTMLElement>(null)
   const exit = () => { engine.stop(); s.set({ mode: 'film', sound: false, hotspot: null }) }
   useEffect(() => {
     close.current?.focus({ preventScroll: true })
@@ -25,6 +25,13 @@ export function Explore() {
     addEventListener('keydown', k)
     return () => { removeEventListener('keydown', k) }
   }, []) // eslint-disable-line
+  // Tell the camera how much of the view the panel covers, so the car moves into the free part.
+  useEffect(() => {
+    const el = panel.current!
+    const on = () => { const r = el.getBoundingClientRect(), sheet = r.width > innerWidth * 0.7; useStore.getState().set({ inset: !open ? [0, 0] : sheet ? [0, innerHeight - r.top] : [innerWidth - r.left, 0] }) }
+    const o = new ResizeObserver(on); o.observe(el); addEventListener('resize', on); on()
+    return () => { o.disconnect(); removeEventListener('resize', on); useStore.getState().set({ inset: [0, 0] }) }
+  }, [open])
   const spot = HOTSPOTS.find((h) => h.id === s.hotspot)
   const sound = async () => { if (s.sound) { engine.stop(); s.set({ sound: false }) } else { await engine.start(); s.set({ sound: true }) } }
   return (
@@ -40,7 +47,7 @@ export function Explore() {
           <button className="link" onClick={() => s.set({ hotspot: null })}>Close note</button>
         </aside>
       )}
-      <section className={`panel ${open ? 'is-open' : ''}`} aria-label="Specification">
+      <section ref={panel} className={`panel ${open ? 'is-open' : ''}`} aria-label="Specification">
         <button className="panel-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide specification' : 'Specify the car'}</button>
         {open && <div className="panel-body">
           <Radios swatch name="paint" legend="Paint" items={PAINTS} value={s.paint} onChange={(i) => s.set({ paint: i })} />

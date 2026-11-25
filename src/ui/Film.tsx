@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { clamp } from '../lib/math'
 import { useStore } from '../state/store'
 import { FilmPlayer } from '../film/player'
-import { FRAMES, LENGTH, REVEAL_END, progress } from '../film/timeline'
+import { band, FRAMES, LENGTH, REVEAL_END, progress } from '../film/timeline'
 import { CREDIT } from './content'
 
 declare global { interface Window { __film?: FilmPlayer } }
@@ -23,7 +23,7 @@ export function Film({ onEnter, preload }: { onEnter: () => void; preload: () =>
     // phones take the 6 MB set: the band is under 500 CSS pixels tall there
     const iw = innerWidth || screen.width, ih = innerHeight || screen.height
     const small = (iw < 760 && matchMedia('(pointer: coarse)').matches) || Math.max(iw, ih * 0.9) * Math.min(devicePixelRatio, 2) < 1300
-    const p = new FilmPlayer(canvas.current!, small ? 'film/960' : 'film/1600', { window: small ? 28 : 40, smooth: !reduced, onFirst: () => setReady(true), onProgress: (k) => { if (k % 16 === 0 || k === FRAMES) setN(k) } })
+    const p = new FilmPlayer(canvas.current!, small ? 'film/960' : 'film/1600', { window: small ? 28 : 40, smooth: !reduced, onFirst: () => setReady(true), onFrame: (f) => canvas.current?.style.setProperty('--band', band(f).toFixed(4)), onProgress: (k) => { if (k % 16 === 0 || k === FRAMES) setN(k) } })
     player.current = p; window.__film = p
     return () => p.dispose()
   }, [reduced])

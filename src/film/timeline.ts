@@ -16,6 +16,13 @@ export function frameAt(s: number): number {
   while (i < MAP.length - 2 && t > MAP[i + 1][0]) i++
   return lerp(MAP[i][1], MAP[i + 1][1], invLerp(MAP[i][0], MAP[i + 1][0], t))
 }
+/** Upright screens: height of the film band as a share of its width, per frame, so the car's ends stay in view. A full 16:9 frame is 0.5625. */
+const BAND: readonly [number, number][] = [[0, 0.74], [60, 0.8], [150, 0.86], [186, 0.95], [190, 0.95], [226, 0.68], [236, 0.68], [266, 0.95], [280, 0.95], [281, 0.68], [304, 0.8], [305, 0.86], [319, 0.86]]
+export function band(f: number): number {
+  let i = 0
+  while (i < BAND.length - 2 && f >= BAND[i + 1][0]) i++
+  return lerp(BAND[i][1], BAND[i + 1][1], invLerp(BAND[i][0], BAND[i + 1][0], f))
+}
 /** Coarse-to-fine download order: the film is scrubbable after ~20 frames and sharpens in time as the rest arrive. */
 export function loadOrder(n = FRAMES): number[] {
   const seen = new Set<number>(), out: number[] = []

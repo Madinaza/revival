@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CUTS, FRAMES, REVEAL_END, frameAt, loadOrder, nearest, progress, shot } from '../src/film/timeline'
+import { band, CUTS, FRAMES, REVEAL_END, frameAt, loadOrder, nearest, progress, shot } from '../src/film/timeline'
 import { fitFov } from '../src/lib/fov'
 import { START } from '../src/explore/start'
 import { readFileSync } from 'node:fs'
@@ -13,6 +13,9 @@ describe('timeline', () => {
   it('finishes the reveal exactly where the slider ends', () => { expect(frameAt(REVEAL_END)).toBe(150) })
   it('passes over the camera cuts in a sliver of scroll', () => { expect(frameAt(0.838)).toBe(280); expect(frameAt(0.841)).toBe(281); expect(frameAt(0.925)).toBe(304); expect(frameAt(0.928)).toBe(305) })
   it('agrees with Blender on where the cuts are', () => { const py = readFileSync('blender/film.py', 'utf8'); expect(CUTS).toEqual([Number(/k\[0\]<(\d+)\)==/.exec(py)![1]), Number(/^CUT=(\d+)/m.exec(py)![1])]); expect(shot(280)).toBe(0); expect(shot(281)).toBe(1); expect(shot(305)).toBe(2) })
+})
+describe('upright screens', () => {
+  it('never shows less than the full film height or a jump within a shot', () => { for (let f = 0; f < FRAMES; f++) { expect(band(f)).toBeGreaterThan(0.5625); if (f && shot(f) === shot(f - 1)) expect(Math.abs(band(f) - band(f - 1))).toBeLessThan(0.02) } })
 })
 describe('loading', () => {
   it('requests every frame once, coarse first', () => {
