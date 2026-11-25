@@ -16,7 +16,9 @@ Revival is a fictional studio and a personal portfolio project. It is not affili
 
 ## Stack
 
-React 19, TypeScript, Vite, Three.js, React Three Fiber, zustand, Vitest. Blender (Python) for the model, cloth, lighting and film. sharp and glTF Transform for encoding. There is no backend yet.
+**Site:** React 19, TypeScript, Vite, Three.js, React Three Fiber, zustand, Vitest.
+**Backend:** Java 25, Spring Boot 4.2, Spring Security, PostgreSQL 18, Flyway, Testcontainers, Docker Compose. See [docs/BACKEND.md](docs/BACKEND.md).
+**Film:** Blender (Python) for the model, cloth, lighting and rendering; sharp and glTF Transform for encoding.
 
 ## Run it
 
@@ -34,6 +36,18 @@ npm run preview
 ```
 
 `npm run deploy` builds the site and replaces the `gh-pages` branch with it.
+
+The live site is the static build: the film and the configurator, without saving, prices or requests. For the full system, with Docker running:
+
+```bash
+npm run setup
+```
+
+```bash
+docker compose up --build
+```
+
+Then open `http://localhost:8090`, and `http://localhost:8090/admin.html` for the front desk. `setup` writes random passwords to `.env`, including the front desk login. Backend tests: `cd backend && ./mvnw test` (Java 25 and Docker).
 
 URL switches for testing: `?tier=high|medium|low` fixes the realtime quality, `?nowebgl` shows the film-only fallback.
 
@@ -60,7 +74,7 @@ Taken on 25 November 2026 on a MacBook Air (Apple M5, 32 GB, macOS 26.6) with he
 
 First frame appeared in 80 to 140 ms locally. On the live GitHub Pages site, over one home connection of unmeasured speed and a cold cache, one run each showed the first frame after 0.43 s (desktop) and 0.61 s (phone emulation), and the complete film after 8.6 s and 8.4 s; it can be scrubbed before that. The same checks pass there. Initial JavaScript is 76 KB gzipped; Three.js and the scene add 395 KB gzipped and the car model 1.6 MB, only when a visitor heads for the realtime view.
 
-Automated checks: 22 of 22 pass, including axe (WCAG 2 A/AA, 2.1 AA, 2.2 AA rules) with no violations in the film, the realtime view and the fallback. Axe could not judge the contrast of text over imagery; that was reviewed by eye. 10 of 10 unit tests pass.
+Automated checks: 22 of 22 pass, including axe (WCAG 2 A/AA, 2.1 AA, 2.2 AA rules) with no violations in the film, the realtime view and the fallback. Axe could not judge the contrast of text over imagery; that was reviewed by eye. 14 of 14 unit tests pass.
 
 Not tested: real phones, Safari, Firefox, screen readers, slow networks.
 
