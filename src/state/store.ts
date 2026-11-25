@@ -16,9 +16,11 @@ export const TRIMS = [
 interface S {
   mode: Mode; tier: Tier; tierLocked: boolean; live: boolean; reduced: boolean; webgl: boolean
   paint: number; finish: number; trim: number; head: boolean; tail: boolean; hotspot: string | null; sound: boolean
+  /** Pixels of the realtime view covered by the open panel: from the right edge, and from the bottom. */
+  inset: readonly [number, number]
   set: (p: Partial<S>) => void
 }
 export const useStore = create<S>((set) => ({
   mode: 'film', tier: 'high', tierLocked: false, live: false, reduced: false, webgl: true,
-  paint: 0, finish: 0, trim: 0, head: true, tail: true, hotspot: null, sound: false, set: (p) => set(p),
+  paint: 0, finish: 0, trim: 0, head: true, tail: true, hotspot: null, sound: false, inset: [0, 0], set: (p) => set(p),
 }))

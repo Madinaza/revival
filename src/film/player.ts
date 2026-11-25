@@ -14,7 +14,7 @@ export class FilmPlayer {
   private abort = new AbortController()
   private g: CanvasRenderingContext2D
   readonly stats = { loaded: 0, bytes: 0, decodes: 0, drawMs: [] as number[], ticks: [] as number[] }
-  constructor(private canvas: HTMLCanvasElement, private dir: string, private o: { window: number; smooth: boolean; onFirst: () => void; onProgress: (n: number) => void }) {
+  constructor(private canvas: HTMLCanvasElement, private dir: string, private o: { window: number; smooth: boolean; onFirst: () => void; onFrame?: (f: number) => void; onProgress: (n: number) => void }) {
     this.g = canvas.getContext('2d', { alpha: false })!
     void this.load(); this.raf = requestAnimationFrame(this.tick)
   }
@@ -56,7 +56,7 @@ export class FilmPlayer {
     if (show >= 0 && show !== this.drawn) {
       const t = performance.now(), b = this.bitmaps.get(show)!
       if (this.canvas.width !== b.width) { this.canvas.width = b.width; this.canvas.height = b.height }
-      this.g.drawImage(b, 0, 0); if (this.drawn < 0) this.o.onFirst(); this.drawn = show
+      this.g.drawImage(b, 0, 0); if (this.drawn < 0) this.o.onFirst(); this.drawn = show; this.o.onFrame?.(show)
       this.stats.drawMs.push(performance.now() - t); if (this.stats.drawMs.length > 300) this.stats.drawMs.shift()
     }
   }
