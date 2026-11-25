@@ -4,6 +4,8 @@
 
 An interactive film about one classic muscle car. Scroll to pull 37 m² of silk off it, follow the camera around a dark concrete studio, then step out of the film and walk around the car in realtime: change paint, finish and wheels, switch the lamps, start the engine.
 
+**Live: [madinaza.github.io/revival](https://madinaza.github.io/revival/)**
+
 Revival is a fictional studio and a personal portfolio project. It is not affiliated with or endorsed by any car maker.
 
 ## How it works
@@ -30,6 +32,8 @@ npm test
 npm run build
 npm run preview
 ```
+
+`npm run deploy` builds the site and replaces the `gh-pages` branch with it.
 
 URL switches for testing: `?tier=high|medium|low` fixes the realtime quality, `?nowebgl` shows the film-only fallback.
 
