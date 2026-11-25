@@ -1,0 +1,12 @@
+node_modules
+dist
+.DS_Store
+.playwright-mcp
+.elite
+blender/*.blend*
+blender/*.npy
+blender/car_raw.glb
+blender/old
+assets-src/car
+render
+docs/look-test
