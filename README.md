@@ -2,7 +2,7 @@
 
 ![The silk coming off the car](docs/media/silk.jpg)
 
-An interactive film about one classic muscle car. Scroll to pull 37 m² of silk off it, follow the camera around a dark concrete studio, then step out of the film and walk around the car in realtime: change paint, finish and wheels, switch the lamps, start the engine.
+An interactive film about one classic muscle car, with a booking system behind it. Scroll to pull 37 m² of silk off it, follow the camera around a dark concrete studio, then step out of the film and walk around the car in realtime: change paint, finish and wheels, switch the lamps, start the engine.
 
 **Live: [madinaza.github.io/revival](https://madinaza.github.io/revival/)**
 
@@ -37,7 +37,7 @@ npm run preview
 
 `npm run deploy` builds the site and replaces the `gh-pages` branch with it.
 
-The live site is the static build: the film and the configurator, without saving, prices or requests. For the full system, with Docker running:
+The live site is the static build: the film, the configurator and how it was made, without saving, prices or bookings. The full system adds saved designs with their own page, comparison, a test-drive calendar, a page to move or cancel a booking, and a front desk with calendar, requests, catalogue, summary and history. For the full system, with Docker running:
 
 ```bash
 npm run setup
@@ -121,6 +121,8 @@ blender -b --factory-startup -P blender/film.py -- "$PWD/render/film" 0-319 100 
 ```bash
 node tools/encode_film.mjs render/film 86
 ```
+
+`blender/stills.py` photographs the specifications for the car pages, and `tools/camera_path.py` writes the camera path shown on the making-of page.
 
 Frames that already exist are skipped, so an interrupted render can be resumed. Expect hours, not minutes.
 
