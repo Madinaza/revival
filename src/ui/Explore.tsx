@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
-import { FINISHES, PAINTS, TRIMS, useStore } from '../state/store'
+import { useStore, type Choice } from '../state/store'
+import { API, money } from '../api/client'
+import { Order } from './Order'
 import { HOTSPOTS } from './content'
 import { engine } from '../audio/engine'
 
-function Radios({ name, legend, items, value, onChange, swatch }: { name: string; legend: string; items: readonly { name: string; color?: string }[]; value: number; onChange: (i: number) => void; swatch?: boolean }) {
+function Radios<T extends Choice & { color?: string }>({ name, legend, items, value, onChange, swatch }: { name: string; legend: string; items: readonly T[]; value: T; onChange: (x: T) => void; swatch?: boolean }) {
   return (
     <fieldset className={swatch ? 'swatches' : 'chips'}>
-      <legend>{legend}</legend>
-      {items.map((it, i) => (
-        <label key={it.name}>
-          <input type="radio" name={name} checked={value === i} onChange={() => onChange(i)} />
-          {swatch && <i style={{ background: it.color }} aria-hidden />}<span>{it.name}</span>
+      <legend>{legend}{API && value.price > 0 && <span className="extra"> +{money(value.price)}</span>}</legend>
+      {items.map((it) => (
+        <label key={it.code}>
+          <input type="radio" name={name} checked={value.code === it.code} onChange={() => onChange(it)} />
+          {swatch && <i style={{ background: it.color }} aria-hidden />}<span>{it.name}{it.gone && ' (withdrawn)'}</span>
         </label>
       ))}
     </fieldset>
@@ -21,7 +23,7 @@ export function Explore() {
   const exit = () => { engine.stop(); s.set({ mode: 'film', sound: false, hotspot: null }) }
   useEffect(() => {
     close.current?.focus({ preventScroll: true })
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (useStore.getState().hotspot) useStore.getState().set({ hotspot: null }); else exit() } }
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('dialog[open]')) { if (useStore.getState().hotspot) useStore.getState().set({ hotspot: null }); else exit() } }
     addEventListener('keydown', k)
     return () => { removeEventListener('keydown', k) }
   }, []) // eslint-disable-line
@@ -50,9 +52,9 @@ export function Explore() {
       <section ref={panel} className={`panel ${open ? 'is-open' : ''}`} aria-label="Specification">
         <button className="panel-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide specification' : 'Specify the car'}</button>
         {open && <div className="panel-body">
-          <Radios swatch name="paint" legend="Paint" items={PAINTS} value={s.paint} onChange={(i) => s.set({ paint: i })} />
-          <Radios name="finish" legend="Finish" items={FINISHES.map((name) => ({ name }))} value={s.finish} onChange={(i) => s.set({ finish: i })} />
-          <Radios name="trim" legend="Wheels" items={TRIMS} value={s.trim} onChange={(i) => s.set({ trim: i })} />
+          <Radios swatch name="paint" legend="Paint" items={s.paints} value={s.paint} onChange={(paint) => s.set({ paint })} />
+          <Radios name="finish" legend="Finish" items={s.finishes} value={s.finish} onChange={(finish) => s.set({ finish })} />
+          <Radios name="trim" legend="Wheels" items={s.trims} value={s.trim} onChange={(trim) => s.set({ trim })} />
           <fieldset className="chips"><legend>Electrics</legend>
             <button aria-pressed={s.head} onClick={() => s.set({ head: !s.head })}>Headlights</button>
             <button aria-pressed={s.tail} onClick={() => s.set({ tail: !s.tail })}>Taillights</button>
@@ -63,6 +65,7 @@ export function Explore() {
             {HOTSPOTS.map((h) => <button key={h.id} aria-pressed={s.hotspot === h.id} onClick={() => s.set({ hotspot: s.hotspot === h.id ? null : h.id })}>{h.title}</button>)}
           </fieldset>
         </div>}
+        {open && API && <Order />}
       </section>
     </div>
   )

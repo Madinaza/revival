@@ -9,10 +9,12 @@ import { START } from './start'
 export function CameraRig() {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera, size = useThree((s) => s.size), reduced = useStore((s) => s.reduced), hotspot = useStore((s) => s.hotspot)
   // Starts uncovered, to match the film's last frame, then eases into the part of the view the panel leaves free.
-  const cover = useRef<[number, number]>([0, 0]), applied = useRef('')
+  const cover = useRef<[number, number]>([0, 0]), applied = useRef(''), age = useRef(0)
   useEffect(() => { applied.current = ''; return () => camera.clearViewOffset() }, [camera, size])
   useFrame((_, dt) => {
-    const [x, y] = useStore.getState().inset, c = cover.current
+    // Wait out the dissolve from the film, or the car would be seen twice.
+    if (useStore.getState().live) age.current += dt
+    const [x, y] = age.current < 1.1 ? [0, 0] : useStore.getState().inset, c = cover.current
     for (const [i, goal] of [x, y].entries()) c[i] = reduced || Math.abs(goal - c[i]) < 0.5 ? goal : damp(c[i], goal, 4, Math.min(dt, 0.05))
     const key = c.join()
     if (key === applied.current) return

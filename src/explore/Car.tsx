@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { damp } from '../lib/math'
-import { FINISHES, PAINTS, TRIMS, useStore } from '../state/store'
+import { useStore } from '../state/store'
 
 const SET: Record<string, THREE.MeshPhysicalMaterialParameters> = {
   paint: { clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.4 }, chrome: { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -6, color: '#e6e6e8', metalness: 1, roughness: 0.05, envMapIntensity: 1.25 },
@@ -22,12 +22,12 @@ export function Car() {
       mats[n] ??= Object.assign(new THREE.MeshPhysicalMaterial({ color: src.color, metalness: src.metalness, roughness: src.roughness, side: THREE.DoubleSide, shadowSide: THREE.DoubleSide, ...SET[n] }), { name: n })
       m.material = mats[n]; m.castShadow = n !== 'lens'; m.receiveShadow = true
     })
-    const p = PAINTS[useStore.getState().paint]; mats.paint?.color.set(p.color)
+    const p = useStore.getState().paint; mats.paint?.color.set(p.color)
     return { root, mats }
   }, [scene])
   useEffect(() => () => Object.values(rig.mats).forEach((m) => m.dispose()), [rig])
   useFrame((_, dt) => {
-    const s = useStore.getState(), m = rig.mats, d = Math.min(dt, 0.05), k = 1 - Math.exp(-6 * d), p = PAINTS[s.paint], t = TRIMS[s.trim], satin = FINISHES[s.finish] === 'Satin'
+    const s = useStore.getState(), m = rig.mats, d = Math.min(dt, 0.05), k = 1 - Math.exp(-6 * d), p = s.paint, t = s.trim, satin = s.finish.code === 'satin'
     lit.current.head = damp(lit.current.head, Number(s.head), 9, d); lit.current.tail = damp(lit.current.tail, Number(s.tail), 9, d)
     if (m.lampFront) m.lampFront.emissiveIntensity = lit.current.head * 7
     if (m.lampRear) m.lampRear.emissiveIntensity = lit.current.tail * 1.5
