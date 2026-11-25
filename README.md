@@ -4,6 +4,8 @@
 
 An interactive film about one classic muscle car. Scroll to pull 37 m² of silk off it, follow the camera around a dark concrete studio, then step out of the film and walk around the car in realtime: change paint, finish and wheels, switch the lamps, start the engine.
 
+**Live: [madinaza.github.io/revival](https://madinaza.github.io/revival/)**
+
 Revival is a fictional studio and a personal portfolio project. It is not affiliated with or endorsed by any car maker.
 
 ## How it works
@@ -31,6 +33,8 @@ npm run build
 npm run preview
 ```
 
+`npm run deploy` builds the site and replaces the `gh-pages` branch with it.
+
 URL switches for testing: `?tier=high|medium|low` fixes the realtime quality, `?nowebgl` shows the film-only fallback.
 
 ## Accessibility and fallbacks
@@ -54,7 +58,7 @@ Taken on 25 November 2026 on a MacBook Air (Apple M5, 32 GB, macOS 26.6) with he
 | Film download, all 320 frames | 12.5 MB | 6.1 MB |
 | Console errors, horizontal overflow | none | none |
 
-First frame appeared in 80 to 140 ms locally; that excludes any network and says nothing about a real connection. Initial JavaScript is 76 KB gzipped; Three.js and the scene add 395 KB gzipped and the car model 1.6 MB, only when a visitor heads for the realtime view.
+First frame appeared in 80 to 140 ms locally. On the live GitHub Pages site, over one home connection of unmeasured speed and a cold cache, one run each showed the first frame after 0.43 s (desktop) and 0.61 s (phone emulation), and the complete film after 8.6 s and 8.4 s; it can be scrubbed before that. The same checks pass there. Initial JavaScript is 76 KB gzipped; Three.js and the scene add 395 KB gzipped and the car model 1.6 MB, only when a visitor heads for the realtime view.
 
 Automated checks: 22 of 22 pass, including axe (WCAG 2 A/AA, 2.1 AA, 2.2 AA rules) with no violations in the film, the realtime view and the fallback. Axe could not judge the contrast of text over imagery; that was reviewed by eye. 9 of 9 unit tests pass.
 
