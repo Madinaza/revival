@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -41,6 +42,12 @@ public class Problems {
         var body = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Some fields need another look.");
         body.setProperty("fields", fields);
         return body;
+    }
+
+    /** The unique index caught what the checks did not: somebody else got there first. */
+    @ExceptionHandler
+    ProblemDetail onTaken(DataIntegrityViolationException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Someone else was faster. Reload and try again.");
     }
 
     @ExceptionHandler

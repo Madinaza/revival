@@ -1,12 +1,16 @@
 package dev.revival.testdrive;
 
 import dev.revival.audit.Audit;
+import dev.revival.booking.Calendar;
 import dev.revival.common.*;
 import dev.revival.design.Designs;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
-import java.time.Clock;
-import java.util.*;
+import java.time.*;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -20,9 +24,11 @@ class TestDriveAdminController {
     private final TestDrives drives;
     private final Designs designs;
     private final Audit audit;
+    private final Calendar calendar;
     private final Clock clock;
 
-    TestDriveAdminController(TestDrives drives, Designs designs, Audit audit, Clock clock) {
+    TestDriveAdminController(TestDrives drives, Designs designs, Audit audit, Calendar calendar, Clock clock) {
+        this.calendar = calendar;
         this.drives = drives;
         this.designs = designs;
         this.audit = audit;
@@ -34,6 +40,15 @@ class TestDriveAdminController {
         var counts = new EnumMap<Status, Long>(Status.class);
         for (var s : Status.values()) counts.put(s, drives.countByStatus(s));
         return new Summary(counts, designs.count());
+    }
+
+    record Booked(Instant slotAt, Long id, String reference, String name, Status status) {}
+
+    /** Who holds which time in a week. */
+    @GetMapping("/bookings")
+    @Transactional(readOnly = true)
+    List<Booked> bookings(@RequestParam Instant from) {
+        return drives.live(from, from.plus(Duration.ofDays(8))).stream().map(TestDrive::view).map(v -> new Booked(v.slotAt(), v.id(), v.reference(), v.name(), v.status())).toList();
     }
 
     @GetMapping("/test-drives")
@@ -50,6 +65,8 @@ class TestDriveAdminController {
         if (drive.version() != in.version) throw new ObjectOptimisticLockingFailureException(TestDrive.class, id);
         var before = drive.status();
         if (!before.canBecome(in.status)) throw Problems.conflict("A %s request cannot become %s.".formatted(before.name().toLowerCase(Locale.ROOT), in.status.name().toLowerCase(Locale.ROOT)));
+        // Reopening takes the time again, if it is still there to take.
+        if (!before.live() && in.status.live() && drive.slotAt() != null) calendar.claim(drive.slotAt());
         drive.handle(in.status, in.staffNote == null || in.staffNote.isBlank() ? null : in.staffNote.strip(), clock.instant());
         drives.saveAndFlush(drive);
         audit.record("request.handled", "request " + drive.reference(), before == in.status ? "note edited" : before + " -> " + in.status);

@@ -10,10 +10,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Slows down password guessing and form spam, per client address. */
 class ThrottleFilter extends OncePerRequestFilter {
-    private final RateLimiter signIn, submit;
+    private final RateLimiter signIn, submit, lookUp;
 
     ThrottleFilter(Clock clock) {
         signIn = new RateLimiter(10, Duration.ofMinutes(10), clock);
+        lookUp = new RateLimiter(20, Duration.ofMinutes(10), clock);
         submit = new RateLimiter(20, Duration.ofMinutes(10), clock);
     }
 
@@ -22,6 +23,7 @@ class ThrottleFilter extends OncePerRequestFilter {
         var limiter = !"POST".equals(req.getMethod()) ? null : switch (path(req)) {
             case "/api/login" -> signIn;
             case "/api/designs", "/api/test-drives" -> submit;
+            case "/api/my-request", "/api/my-request/move", "/api/my-request/cancel" -> lookUp;
             default -> null;
         };
         if (limiter != null && !limiter.allow(req.getRemoteAddr())) {
