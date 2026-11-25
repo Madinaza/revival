@@ -13,3 +13,4 @@ docs/look-test
 
 backend/target
 .env
+dist-api

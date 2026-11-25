@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:api": "tsc --noEmit && VITE_API=1 vite build",
+    "setup": "node tools/setup-env.mjs",
     "preview": "vite preview --port 4173",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
