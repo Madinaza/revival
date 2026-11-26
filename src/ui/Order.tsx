@@ -29,10 +29,11 @@ export function Order() {
     <div className="order">
       {sum !== null && <p className="total"><span>Total</span><strong>{money(sum)}</strong></p>}
       <div className="order-actions">
-        <button className="chip" disabled={busy} onClick={() => void share()}>{busy ? 'Saving' : 'Save and copy link'}</button>
+        <button className="chip" disabled={busy} onClick={() => void share()}>{busy ? 'Saving' : current ? 'Copy link' : 'Save and copy link'}</button>
+        {current && <a className="chip" href={`car.html?code=${current}`}>Open its page</a>}
         <button className="chip is-main" onClick={() => setAsking(true)}>Request a test drive</button>
       </div>
-      <p className="order-note" role="status">{note}{current && <> <a href={linkTo(current)}>{current}</a> <a href={`car.html?code=${current}`}>Open its page</a></>}</p>
+      <p className="order-note" role="status">{note}{current && <> Code <a href={linkTo(current)}>{current}</a>.</>}</p>
       {asking && <TestDrive design={keep} onClose={() => setAsking(false)} />}
     </div>
   )

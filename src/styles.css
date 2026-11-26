@@ -85,6 +85,7 @@ legend { color: var(--dim); font-size: .9rem; padding: 0 0 .45rem; }
 .extra { color: var(--brass); }
 .order { border-top: 1px solid #ffffff1c; padding: .9rem 1.2rem 1.1rem; display: grid; gap: .7rem; }
 .total { max-width: none; display: flex; justify-content: space-between; align-items: baseline; } .total span { color: var(--dim); } .total strong { font: 400 1.7rem/1 var(--display); font-variant-numeric: lining-nums; }
+.order-actions a.chip { display: inline-flex; align-items: center; text-decoration: none; }
 .order-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .chip { padding: .5rem .95rem; border: 1px solid #ffffff3d; border-radius: 99px; min-height: 2.5rem; font-size: .92rem; color: var(--ink); transition: background .2s, color .2s; } .chip:hover:not(:disabled) { border-color: var(--ink); } .chip:disabled { opacity: .5; cursor: default; }
 .chip.is-main { background: var(--ink); color: #111; border-color: var(--ink); } .chip.is-main:hover:not(:disabled) { background: var(--brass); border-color: var(--brass); }

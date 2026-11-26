@@ -21,7 +21,7 @@ await p.locator('.bar .link').click(); await p.waitForSelector('.order .total');
 const before = num(await p.locator('.total strong').textContent())
 await p.locator('.panel label', { hasText: /^Oxblood$/ }).click()
 check('choosing a paint changes the total', num(await p.locator('.total strong').textContent()) === before + 2400, `${before} -> ${await p.locator('.total strong').textContent()}`)
-await p.locator('.order button', { hasText: 'Save and copy link' }).click(); const link = await p.locator('.order-note a').first().getAttribute('href'); check('saving gives a link', /\?design=[2-9A-Z]{8}$/.test(link)); await shot(p, 'site-saved')
+await p.locator('.order button', { hasText: 'Save and copy link' }).click(); const link = await p.locator('.order-note a').first().getAttribute('href'); check('saving gives a link', /\?design=[2-9A-Z]{8}$/.test(link)); check('and a button to its page', (await p.locator('.order-actions a', { hasText: 'Open its page' }).getAttribute('href')) === `car.html?code=${link.slice(-8)}`); await shot(p, 'site-saved')
 await p.locator('.order button', { hasText: 'Request a test drive' }).click(); await p.waitForSelector('dialog[open]'); await runAxe(p, 'test-drive form')
 await p.locator('dialog button', { hasText: 'Send request' }).click(); await p.waitForSelector('dialog em')
 check('an empty form names the wrong fields and moves there', (await p.locator('dialog em').count()) >= 3 && (await p.evaluate(() => document.activeElement.getAttribute('aria-invalid'))) === 'true'); await shot(p, 'site-form-errors')
