@@ -1,6 +1,7 @@
 import { Component, Suspense, lazy, useCallback, useEffect, type ReactNode } from 'react'
 import { hasWebGL2, initialTier, tierLocked } from './lib/capabilities'
-import { useStore } from './state/store'
+import { applyCatalog, applyDesign, useStore } from './state/store'
+import { API, call, type Catalog, type Design } from './api/client'
 import { Film } from './ui/Film'
 import { Explore } from './ui/Explore'
 // three.js is only downloaded when someone heads for the realtime view.
@@ -19,6 +20,13 @@ export function App() {
     const m = matchMedia('(prefers-reduced-motion: reduce)'), f = () => useStore.getState().set({ reduced: m.matches })
     f(); m.addEventListener('change', f)
     useStore.getState().set({ tier: initialTier(), tierLocked: tierLocked(), webgl: hasWebGL2() })
+    if (API) void (async () => {
+      // Without the API the film and the car still work, only unpriced.
+      try { applyCatalog(await call<Catalog>('GET', 'api/catalog')) } catch { return }
+      const code = new URLSearchParams(location.search).get('design')
+      if (!code) return
+      try { applyDesign(await call<Design>('GET', `api/designs/${encodeURIComponent(code)}`)); if (useStore.getState().webgl) useStore.getState().set({ mode: 'explore' }) } catch { /* an unknown code opens the film */ }
+    })()
     return () => m.removeEventListener('change', f)
   }, [])
   const preload = useCallback(() => { if (asked || !useStore.getState().webgl) return; asked = true; void load(); void fetch('models/car.glb').catch(() => {}) }, [])

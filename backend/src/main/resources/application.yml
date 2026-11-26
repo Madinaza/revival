@@ -1,0 +1,25 @@
+spring:
+  application.name: revival-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/revival}
+    username: ${DB_USER:revival}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate.ddl-auto: validate
+  mvc.problemdetails.enabled: true
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: ${FORWARD_HEADERS:none}
+  servlet.session:
+    timeout: 30m
+    cookie:
+      name: revival_session
+      http-only: true
+      same-site: lax
+      secure: ${COOKIE_SECURE:true}
+management.endpoints.web.exposure.include: health
+revival:
+  admin:
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}

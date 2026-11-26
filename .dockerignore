@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-api
+render
+blender
+assets-src
+backend
+docs
+.git
+.env
+.elite

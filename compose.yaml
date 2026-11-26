@@ -1,0 +1,27 @@
+name: revival
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: revival
+      POSTGRES_USER: revival
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?run npm run setup first}
+    volumes: [db:/var/lib/postgresql]
+    healthcheck: { test: [CMD-SHELL, pg_isready -U revival -d revival], interval: 3s, retries: 20 }
+  api:
+    build: backend
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/revival
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?run npm run setup first}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?run npm run setup first}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      FORWARD_HEADERS: native
+    depends_on: { db: { condition: service_healthy } }
+    healthcheck: { test: [CMD-SHELL, wget -qO- http://localhost:8080/actuator/health | grep -q UP], interval: 3s, retries: 40 }
+  web:
+    build: { context: ., dockerfile: deploy/web.Dockerfile }
+    ports: ["127.0.0.1:${WEB_PORT:-8090}:8080"]
+    depends_on: { api: { condition: service_healthy } }
+volumes:
+  db:

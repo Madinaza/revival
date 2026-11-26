@@ -82,6 +82,17 @@ legend { color: var(--dim); font-size: .9rem; padding: 0 0 .45rem; }
 .loader { position: fixed; inset: 0; z-index: 10; background: var(--night); display: grid; place-content: center; gap: 1.2rem; justify-items: center; transition: opacity 1s .1s; font: italic 400 1.5rem var(--display); }
 .loader.is-done { opacity: 0; pointer-events: none; }
 .loader progress { width: 12rem; height: 1px; appearance: none; border: 0; background: #ffffff22; } .loader progress::-webkit-progress-bar { background: #ffffff22; } .loader progress::-webkit-progress-value { background: var(--brass); } .loader progress::-moz-progress-bar { background: var(--brass); }
+.extra { color: var(--brass); }
+.order { border-top: 1px solid #ffffff1c; padding: .9rem 1.2rem 1.1rem; display: grid; gap: .7rem; }
+.total { max-width: none; display: flex; justify-content: space-between; align-items: baseline; } .total span { color: var(--dim); } .total strong { font: 400 1.7rem/1 var(--display); font-variant-numeric: lining-nums; }
+.order-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.chip { padding: .5rem .95rem; border: 1px solid #ffffff3d; border-radius: 99px; min-height: 2.5rem; font-size: .92rem; color: var(--ink); transition: background .2s, color .2s; } .chip:hover:not(:disabled) { border-color: var(--ink); } .chip:disabled { opacity: .5; cursor: default; }
+.chip.is-main { background: var(--ink); color: #111; border-color: var(--ink); } .chip.is-main:hover:not(:disabled) { background: var(--brass); border-color: var(--brass); }
+.order-note { font-size: .9rem; color: #d3cab9; } .order-note:empty { display: none; }
+.sheet { margin: auto; width: min(34rem, calc(100vw - 2 * var(--pad))); max-height: calc(100svh - 2 * var(--pad)); padding: 0; border: 1px solid #ffffff24; border-radius: 4px; background: #100e0c; color: var(--ink); overflow: auto; } .sheet::backdrop { background: #050403c4; }
+.sheet-body { padding: clamp(1.2rem, 4vw, 2.2rem); display: grid; gap: 1.05rem; justify-items: start; } .sheet h2 { font-size: clamp(1.9rem, 4vw, 2.7rem); } .sheet p { max-width: 46ch; } .fine { color: var(--dim); font-size: .92rem; }
+.field { display: grid; gap: .35rem; width: 100%; } .field span { color: #d3cab9; font-size: .95rem; } .field input, .field textarea { width: 100%; font: inherit; color: var(--ink); background: #1a1714; border: 1px solid #ffffff2e; border-radius: 3px; padding: .65rem .75rem; min-height: 2.9rem; resize: vertical; } .field [aria-invalid='true'] { border-color: #e2685f; } .field em { color: #f09a92; font-style: normal; font-size: .9rem; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1.05rem; width: 100%; } .trap { position: absolute; left: -999rem; }
 @media (max-aspect-ratio: 8/5) { .finale .vast { max-width: none; font-size: clamp(1.9rem, 3.6vw, 4rem); } }
 @media (max-aspect-ratio: 1/1) {
   /* a band whose height follows the shot (--band, set per frame), centred on the same line */

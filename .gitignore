@@ -10,3 +10,7 @@ blender/old
 assets-src/car
 render
 docs/look-test
+
+backend/target
+.env
+dist-api
