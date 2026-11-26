@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { call, money, Problem, type Design } from '../api/client'
+import { remember } from '../pages/recent'
+import { Slots } from '../booking/Slots'
 import { total, useStore } from '../state/store'
 
 async function save(): Promise<Design> {
@@ -17,7 +19,7 @@ export function Order() {
   useEffect(() => setNote(''), [key])
   const keep = async () => {
     if (current) return current
-    const d = await save(); setSaved({ key, code: d.code }); return d.code
+    const d = await save(); setSaved({ key, code: d.code }); remember(d.code); return d.code
   }
   const share = async () => {
     setBusy(true); setNote('')
@@ -27,17 +29,18 @@ export function Order() {
     <div className="order">
       {sum !== null && <p className="total"><span>Total</span><strong>{money(sum)}</strong></p>}
       <div className="order-actions">
-        <button className="chip" disabled={busy} onClick={() => void share()}>{busy ? 'Saving' : 'Save and copy link'}</button>
+        <button className="chip" disabled={busy} onClick={() => void share()}>{busy ? 'Saving' : current ? 'Copy link' : 'Save and copy link'}</button>
+        {current && <a className="chip" href={`car.html?code=${current}`}>Open its page</a>}
         <button className="chip is-main" onClick={() => setAsking(true)}>Request a test drive</button>
       </div>
-      <p className="order-note" role="status">{note}{current && <> <a href={linkTo(current)}>{current}</a></>}</p>
+      <p className="order-note" role="status">{note}{current && <> Code <a href={linkTo(current)}>{current}</a>.</>}</p>
       {asking && <TestDrive design={keep} onClose={() => setAsking(false)} />}
     </div>
   )
 }
 
 function TestDrive({ design, onClose }: { design: () => Promise<string>; onClose: () => void }) {
-  const box = useRef<HTMLDialogElement>(null), [errors, setErrors] = useState<Record<string, string>>({}), [note, setNote] = useState(''), [busy, setBusy] = useState(false), [done, setDone] = useState('')
+  const box = useRef<HTMLDialogElement>(null), [errors, setErrors] = useState<Record<string, string>>({}), [note, setNote] = useState(''), [busy, setBusy] = useState(false), [done, setDone] = useState(''), [slot, setSlot] = useState(''), [tries, setTries] = useState(0)
   useEffect(() => { const d = box.current!; d.showModal(); return () => d.close() }, [])
   const send = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -45,9 +48,10 @@ function TestDrive({ design, onClose }: { design: () => Promise<string>; onClose
     setBusy(true); setErrors({}); setNote('')
     try {
       const designCode = await design()
-      setDone((await call<{ reference: string }>('POST', 'api/test-drives', { ...v, preferredDate: v.preferredDate || null, designCode })).reference)
+      setDone((await call<{ reference: string }>('POST', 'api/test-drives', { ...v, slotAt: slot || null, designCode })).reference)
+      sessionStorage.setItem('request-email', v.email)
     } catch (x) {
-      if (x instanceof Problem) { setErrors(x.fields); setNote(x.message); const first = Object.keys(x.fields)[0]; if (first) (form.elements.namedItem(first) as HTMLElement | null)?.focus() } else setNote(said(x))
+      if (x instanceof Problem) { setErrors(x.fields); setNote(x.message); if (x.fields.slotAt && slot) { setSlot(''); setTries((n) => n + 1) } const first = Object.keys(x.fields)[0]; if (first) { const el = form.elements.namedItem(first); (el instanceof RadioNodeList ? (el[0] as HTMLElement) : (el as HTMLElement | null))?.focus() } } else setNote(said(x))
     } finally { setBusy(false) }
   }
   const field = (name: string, label: string, props: React.InputHTMLAttributes<HTMLInputElement>) => (
@@ -56,14 +60,13 @@ function TestDrive({ design, onClose }: { design: () => Promise<string>; onClose
       {errors[name] && <em id={`${name}-error`}>{errors[name]}</em>}
     </label>
   )
-  const today = new Date(), iso = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
   return (
     <dialog ref={box} className="sheet" aria-labelledby="drive-title" onClose={onClose} onKeyDown={(e) => e.stopPropagation()}>
       {done ? (
         <div className="sheet-body" role="status">
           <h2 id="drive-title">Request received</h2>
-          <p>Your reference is <strong>{done}</strong>. This is a fictional studio, so nobody will call.</p>
-          <button className="chip is-main" autoFocus onClick={onClose}>Back to the car</button>
+          <p>Your reference is <strong>{done}</strong>. With it and your email you can move or cancel the date. This is a fictional studio, so nobody will call.</p>
+          <div className="order-actions"><button className="chip is-main" autoFocus onClick={onClose}>Back to the car</button><a className="chip" href="my-request.html" onClick={() => sessionStorage.setItem('request-reference', done)}>See my request</a></div>
         </div>
       ) : (
         <form className="sheet-body" noValidate onSubmit={(e) => void send(e)}>
@@ -71,7 +74,8 @@ function TestDrive({ design, onClose }: { design: () => Promise<string>; onClose
           <p className="fine">A demonstration form for a fictional studio. Please do not enter real personal details.</p>
           {field('name', 'Name', { autoComplete: 'name', maxLength: 80, autoFocus: true })}
           {field('email', 'Email', { type: 'email', autoComplete: 'email', maxLength: 160 })}
-          <div className="pair">{field('phone', 'Phone (optional)', { type: 'tel', autoComplete: 'tel', maxLength: 30 })}{field('preferredDate', 'Preferred date', { type: 'date', min: iso(today) })}</div>
+          {field('phone', 'Phone (optional)', { type: 'tel', autoComplete: 'tel', maxLength: 30 })}
+          <Slots value={slot} onChange={setSlot} error={errors.slotAt} refresh={tries} />
           <label className="field"><span>Anything we should know (optional)</span><textarea name="message" rows={3} maxLength={1000} aria-invalid={!!errors.message} />{errors.message && <em>{errors.message}</em>}</label>
           <input className="trap" name="website" tabIndex={-1} autoComplete="off" aria-hidden />
           <p className="order-note" role="alert">{note}</p>

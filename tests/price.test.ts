@@ -10,7 +10,7 @@ describe('prices', () => {
   it('are unknown until the catalogue arrives, and add up after', () => { expect(total(useStore.getState())).toBeNull(); applyCatalog(catalog); expect(total(useStore.getState())).toBe(1000 + 10 + 1 + 2) })
   it('ignores a catalogue with nothing to choose from', () => { applyCatalog({ ...catalog, PAINT: [] }); expect(useStore.getState().paints).toHaveLength(2) })
   it('shows a withdrawn paint of a saved design, marked', () => {
-    applyDesign({ code: 'X', paint: item('PAINT', 'old', 5), finish: catalog.FINISH[0], wheels: catalog.WHEELS[0], headlights: false, taillights: true, totalCents: 1, createdAt: '' } satisfies Design)
+    applyDesign({ code: 'X', paint: item('PAINT', 'old', 5), finish: catalog.FINISH[0], wheels: catalog.WHEELS[0], headlights: false, taillights: true, totalCents: 1, prices: null, createdAt: '' } satisfies Design)
     const s = useStore.getState(); expect(s.paint).toMatchObject({ code: 'old', gone: true }); expect(s.paints).toHaveLength(3); expect(s.head).toBe(false)
   })
 })

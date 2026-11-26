@@ -8,7 +8,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.jayway.jsonpath.JsonPath;
-import java.time.LocalDate;
+import java.time.*;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,8 @@ class ApiTest {
     @Autowired JdbcTemplate jdbc;
     MockMvc mvc;
     String ip;
+    int next;
+    static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
 
     @BeforeEach
     void setUp() {
@@ -43,6 +47,7 @@ class ApiTest {
         jdbc.update("delete from test_drive_request");
         jdbc.update("delete from design");
         jdbc.update("delete from audit_entry");
+        jdbc.update("delete from closed_time");
         jdbc.update("update option_item set active = true");
     }
 
@@ -71,9 +76,18 @@ class ApiTest {
             {"paint":"oxblood","finish":"satin","wheels":"brass","headlights":true,"taillights":false}""").andExpect(status().isCreated()), "$.code");
     }
 
-    static String drive(String extra) {
+    /** The nth opening from next week on, as the API writes it. */
+    static String slot(int n) {
+        var out = new ArrayList<Instant>();
+        for (var d = LocalDate.now(ZONE).plusDays(7); out.size() <= n; d = d.plusDays(1))
+            if (d.getDayOfWeek().getValue() >= 2 && d.getDayOfWeek().getValue() <= 6)
+                for (var t : List.of("10:00", "11:30", "14:00", "15:30")) out.add(d.atTime(LocalTime.parse(t)).atZone(ZONE).toInstant());
+        return out.get(n).toString();
+    }
+
+    String drive(String extra) {
         return """
-            {"name":"Ada Test","email":"ada@example.com","preferredDate":"%s"%s}""".formatted(LocalDate.now().plusDays(7), extra);
+            {"name":"Ada Test","email":"ada@example.com","slotAt":"%s"%s}""".formatted(slot(next++), extra);
     }
 
     String optionId(String kind, String code) {
@@ -112,7 +126,7 @@ class ApiTest {
         void keepTheirPriceAndPaintAfterTheCatalogueChanges() throws Exception {
             var code = saveDesign();
             jdbc.update("update option_item set active = false, price_cents = 999 where code = 'oxblood'");
-            mvc.perform(get("/api/designs/" + code)).andExpect(jsonPath("$.paint.color").value("#3a0508")).andExpect(jsonPath("$.totalCents").value(15545000));
+            mvc.perform(get("/api/designs/" + code)).andExpect(jsonPath("$.paint.color").value("#3a0508")).andExpect(jsonPath("$.prices.paint").value(240000)).andExpect(jsonPath("$.prices.base").value(14850000)).andExpect(jsonPath("$.totalCents").value(15545000));
             jdbc.update("update option_item set price_cents = 240000 where code = 'oxblood'");
         }
 
@@ -138,8 +152,8 @@ class ApiTest {
         void areToldWhichFieldsAreWrong() throws Exception {
             send(post("/api/test-drives"), """
                 {"name":" ","email":"nope","phone":"call me"}""").andExpect(status().isBadRequest()).andExpect(content().contentTypeCompatibleWith("application/problem+json"))
-                .andExpect(jsonPath("$.fields.name").exists()).andExpect(jsonPath("$.fields.email").exists()).andExpect(jsonPath("$.fields.phone").exists()).andExpect(jsonPath("$.fields.preferredDate").exists());
-            send(post("/api/test-drives"), drive("").replaceAll("\\d{4}-\\d\\d-\\d\\d", "2020-01-01")).andExpect(jsonPath("$.fields.preferredDate").exists());
+                .andExpect(jsonPath("$.fields.name").exists()).andExpect(jsonPath("$.fields.email").exists()).andExpect(jsonPath("$.fields.phone").exists()).andExpect(jsonPath("$.fields.slotAt").exists());
+            send(post("/api/test-drives"), drive("").replaceAll("\\d{4}-\\d\\d-\\d\\d", "2020-01-01")).andExpect(jsonPath("$.fields.slotAt").exists());
             send(post("/api/test-drives"), drive(",\"designCode\":\"NOTHERE2\"")).andExpect(jsonPath("$.fields.designCode").exists());
             send(post("/api/test-drives"), "{broken").andExpect(status().isBadRequest());
         }
@@ -158,7 +172,7 @@ class ApiTest {
 
         @Test
         void cannotReachAnythingElse() throws Exception {
-            for (var url : new String[] {"/api/admin/summary", "/api/admin/test-drives", "/api/admin/designs", "/api/admin/options", "/api/admin/audit", "/actuator/env"})
+            for (var url : new String[] {"/api/admin/summary", "/api/admin/test-drives", "/api/admin/designs", "/api/admin/options", "/api/admin/audit", "/api/admin/calendar", "/api/admin/opening-times", "/api/admin/bookings?from=2026-01-01T00:00:00Z", "/actuator/env"})
                 mvc.perform(get(url)).andExpect(status().isUnauthorized());
             send(put("/api/admin/options/1").with(csrf()), "{}").andExpect(status().isUnauthorized());
         }
@@ -264,6 +278,27 @@ class ApiTest {
         }
 
         @Test
+        void readTheReport() throws Exception {
+            saveDesign();
+            saveDesign();
+            request("Ada");
+            readAsAdmin("/api/admin/report").andExpect(jsonPath("$.weeks", hasSize(12))).andExpect(jsonPath("$.weeks[11].designs").value(2)).andExpect(jsonPath("$.weeks[11].requests").value(1))
+                .andExpect(jsonPath("$.weeks[10].requests").value(0)).andExpect(jsonPath("$.options[?(@.name=='Oxblood')].designs", contains(2))).andExpect(jsonPath("$.options[?(@.name=='Ivory')].designs", contains(0)))
+                .andExpect(jsonPath("$.averageTotalCents").value(15545000));
+            jdbc.update("delete from design");
+            readAsAdmin("/api/admin/report").andExpect(jsonPath("$.averageTotalCents").value(nullValue()));
+        }
+
+        @Test
+        void exportRequestsWithoutLettingFormulasRun() throws Exception {
+            send(post("/api/test-drives"), drive(",\"message\":\"say \\\"hi\\\", ok\"").replace("Ada Test", "=HYPERLINK(1)")).andExpect(status().isCreated());
+            var csv = readAsAdmin("/api/admin/test-drives.csv").andExpect(status().isOk()).andExpect(header().string("Content-Disposition", startsWith("attachment"))).andReturn().getResponse().getContentAsString();
+            assertThat(csv).contains("\"'=HYPERLINK(1)\"", "\"say \"\"hi\"\", ok\"");
+            assertThat(csv.lines()).hasSize(2);
+            mvc.perform(get("/api/admin/test-drives.csv")).andExpect(status().isUnauthorized());
+        }
+
+        @Test
         void addAPaintOnce() throws Exception {
             var json = """
                 {"kind":"PAINT","code":"night-green","values":%s}""".formatted(edit("Night green", 100, true, 0));
@@ -284,6 +319,162 @@ class ApiTest {
             jdbc.update("update option_item set active = false where kind = 'WHEELS' and code <> 'brass'");
             var id = optionId("WHEELS", "brass");
             asAdmin(put("/api/admin/options/" + id), edit("Brass", 1, false, version("option_item", id))).andExpect(status().isConflict());
+        }
+    }
+
+    @Nested
+    class Booking {
+        String book(String at) throws Exception {
+            return at(send(post("/api/test-drives"), body(at)).andExpect(status().isCreated()), "$.reference");
+        }
+
+        String body(String at) {
+            return """
+                {"name":"Ada","email":"Ada@Example.com","slotAt":"%s"}""".formatted(at);
+        }
+
+        String key(String ref) {
+            return """
+                {"reference":"%s","email":"ada@example.COM "}""".formatted(ref.toLowerCase());
+        }
+
+        ResultActions availability(String at) throws Exception {
+            return mvc.perform(get("/api/availability").param("from", LocalDate.ofInstant(Instant.parse(at), ZONE).toString())).andExpect(status().isOk());
+        }
+
+        ResultActions expectFree(String at, boolean free) throws Exception {
+            return availability(at).andExpect(jsonPath("$.days[0].slots[?(@.startsAt=='%s')].free".formatted(at), contains(free)));
+        }
+
+        ResultActions move(String ref, String at, int version) throws Exception {
+            return send(post("/api/my-request/move"), """
+                {"key":%s,"slotAt":"%s","version":%d}""".formatted(key(ref), at, version));
+        }
+
+        @Test
+        void takesATimeOffTheCalendarAndCancellingGivesItBack() throws Exception {
+            var at = slot(0);
+            expectFree(at, true);
+            var ref = book(at);
+            expectFree(at, false);
+            send(post("/api/test-drives"), body(at)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.fields.slotAt").exists());
+            send(post("/api/my-request/cancel"), "{\"key\":%s,\"version\":0}".formatted(key(ref))).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CANCELLED"));
+            expectFree(at, true);
+            book(at);
+        }
+
+        @Test
+        void givesOneTimeToOnlyOneOfManyAtOnce() throws Exception {
+            var at = slot(1);
+            var json = body(at);
+            var start = new CountDownLatch(1);
+            try (var pool = Executors.newFixedThreadPool(12)) {
+                var tries = new ArrayList<Future<Integer>>();
+                for (int i = 0; i < 12; i++) tries.add(pool.submit(() -> { start.await(); return send(post("/api/test-drives"), json).andReturn().getResponse().getStatus(); }));
+                start.countDown();
+                var got = new ArrayList<Integer>();
+                for (var t : tries) got.add(t.get());
+                assertThat(got).containsOnly(201, 400).containsOnlyOnce(201);
+            }
+            assertThat(jdbc.queryForObject("select count(*) from test_drive_request", Integer.class)).isOne();
+        }
+
+        @Test
+        void refusesTimesThatAreNotOffered() throws Exception {
+            var t = Instant.parse(slot(0));
+            for (var bad : List.of(t.plusSeconds(60), t.minus(Duration.ofDays(30)), t.plus(Duration.ofDays(364)), t.plus(Duration.ofHours(9))))
+                send(post("/api/test-drives"), body(bad.toString())).andExpect(status().isBadRequest()).andExpect(jsonPath("$.fields.slotAt").exists());
+        }
+
+        @Test
+        void opensOnlyWithBothReferenceAndEmail() throws Exception {
+            var ref = book(slot(0));
+            send(post("/api/my-request"), key(ref)).andExpect(status().isOk()).andExpect(jsonPath("$.name").value("Ada")).andExpect(jsonPath("$.changeable").value(true)).andExpect(jsonPath("$.staffNote").doesNotExist());
+            var wrongMail = at(send(post("/api/my-request"), key(ref).replace("ada@", "eve@")).andExpect(status().isNotFound()), "$.detail");
+            var wrongRef = at(send(post("/api/my-request"), key("AAAAAA")).andExpect(status().isNotFound()), "$.detail");
+            assertThat(wrongMail).isEqualTo(wrongRef);
+            send(post("/api/my-request"), "{}").andExpect(jsonPath("$.fields.reference").exists()).andExpect(jsonPath("$.fields.email").exists());
+        }
+
+        @Test
+        void guessingReferencesIsSlowedDown() throws Exception {
+            for (int i = 0; i < 20; i++) send(post("/api/my-request"), key("AAAAAA")).andExpect(status().isNotFound());
+            send(post("/api/my-request/cancel"), "{}").andExpect(status().isTooManyRequests());
+        }
+
+        @Test
+        void movingFreesTheOldTimeAndAsksForConfirmationAgain() throws Exception {
+            var ref = book(slot(0));
+            jdbc.update("update test_drive_request set status = 'CONFIRMED'");
+            move(ref, slot(2), 0).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("NEW")).andExpect(jsonPath("$.slotAt").value(slot(2)));
+            expectFree(slot(0), true);
+            expectFree(slot(2), false);
+            move(ref, slot(3), 0).andExpect(status().isConflict());
+            readAsAdmin("/api/admin/audit").andExpect(jsonPath("$.items[0].actor").value("visitor")).andExpect(jsonPath("$.items[0].action").value("request.moved"));
+        }
+
+        @Test
+        void cannotBeChangedShortlyBeforeOrAfterwards() throws Exception {
+            var ref = book(slot(0));
+            jdbc.update("update test_drive_request set slot_at = now() + interval '3 hours'");
+            send(post("/api/my-request"), key(ref)).andExpect(jsonPath("$.changeable").value(false));
+            move(ref, slot(2), 0).andExpect(status().isConflict());
+            jdbc.update("update test_drive_request set slot_at = now() + interval '9 days', status = 'COMPLETED'");
+            send(post("/api/my-request/cancel"), "{\"key\":%s,\"version\":0}".formatted(key(ref))).andExpect(status().isConflict());
+        }
+
+        @Test
+        void aMoveToATakenTimeChangesNothing() throws Exception {
+            var ref = book(slot(0));
+            book(slot(1));
+            move(ref, slot(1), 0).andExpect(status().isBadRequest());
+            expectFree(slot(0), false);
+        }
+
+        @Test
+        void staffCloseAndReopenTimes() throws Exception {
+            var at = slot(0);
+            var json = "{\"startsAt\":\"%s\",\"closed\":%b}";
+            asAdmin(put("/api/admin/calendar"), json.formatted(at, true)).andExpect(status().isNoContent());
+            expectFree(at, false);
+            send(post("/api/test-drives"), body(at)).andExpect(status().isBadRequest());
+            asAdmin(put("/api/admin/calendar"), json.formatted(at, false)).andExpect(status().isNoContent());
+            book(at);
+            asAdmin(put("/api/admin/calendar"), json.formatted(at, true)).andExpect(status().isConflict());
+            readAsAdmin("/api/admin/bookings?from=" + at).andExpect(jsonPath("$[0].name").value("Ada"));
+        }
+
+        @Test
+        void aBookedTimeStaysOnTheCalendarWhenTheHoursChange() throws Exception {
+            var at = slot(0);
+            book(at);
+            var local = Instant.parse(at).atZone(ZONE);
+            var json = "{\"weekday\":%d,\"at\":\"%s\",\"open\":%b}";
+            asAdmin(put("/api/admin/opening-times"), json.formatted(local.getDayOfWeek().getValue(), local.toLocalTime(), false)).andExpect(status().isNoContent());
+            try {
+                readAsAdmin("/api/admin/calendar?from=" + local.toLocalDate()).andExpect(jsonPath("$.days[*].slots[?(@.startsAt=='%s')].booked".formatted(at), contains(true)));
+                send(post("/api/test-drives"), body(local.plusWeeks(1).toInstant().toString())).andExpect(status().isBadRequest());
+            } finally {
+                asAdmin(put("/api/admin/opening-times"), json.formatted(local.getDayOfWeek().getValue(), local.toLocalTime(), true));
+            }
+            asAdmin(put("/api/admin/opening-times"), json.formatted(8, "10:00", true)).andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void reopeningACancelledRequestNeedsItsTimeBack() throws Exception {
+            var at = slot(0);
+            book(at);
+            var id = jdbc.queryForObject("select id from test_drive_request", Long.class);
+            jdbc.update("update test_drive_request set status = 'CANCELLED'");
+            book(at);
+            asAdmin(patch("/api/admin/test-drives/" + id), "{\"status\":\"NEW\",\"version\":0}").andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void theDatabaseItselfRefusesTwoForOneTime() throws Exception {
+            book(slot(0));
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("insert into test_drive_request (reference, name, email, slot_at, status, created_at, updated_at) select 'TWICE2', name, email, slot_at, 'NEW', now(), now() from test_drive_request"))
+                .isInstanceOf(org.springframework.dao.DuplicateKeyException.class);
         }
     }
 }

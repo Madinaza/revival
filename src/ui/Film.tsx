@@ -4,6 +4,7 @@ import { useStore } from '../state/store'
 import { FilmPlayer } from '../film/player'
 import { band, FRAMES, LENGTH, REVEAL_END, progress } from '../film/timeline'
 import { CREDIT } from './content'
+import { API } from '../api/client'
 
 declare global { interface Window { __film?: FilmPlayer } }
 const CHAPTERS = [0, REVEAL_END, 0.48, 0.62, 0.78, 0.905, 1]
@@ -52,6 +53,8 @@ export function Film({ onEnter, preload }: { onEnter: () => void; preload: () =>
   }, [reduced, preload, leaving])
   // Entering the realtime view: run the film to its last frame, which shares the realtime camera.
   useEffect(() => { if (leaving && player.current) player.current.target = 1 }, [leaving])
+  const live = useStore((s) => s.live), failure = useStore((s) => s.failure)
+  useEffect(() => { if (live) player.current?.rest() }, [live])
 
   return (
     <main ref={root} className={`film ${leaving ? 'is-leaving' : ''}`} style={{ height: leaving ? '100lvh' : `${(LENGTH + 1) * 100}lvh` }} inert={leaving}>
@@ -62,6 +65,7 @@ export function Film({ onEnter, preload }: { onEnter: () => void; preload: () =>
           <a className="mark" href="#top">Revival</a>
           {webgl && <button className="link" onClick={onEnter} onPointerEnter={preload} onFocus={preload}>Walk around it</button>}
         </header>
+        {failure && <div className="failed" role="alert"><p>The 3D view stopped in this browser, so the film carries on alone. <span>Reason: {failure}</span></p><button className="link" onClick={() => useStore.getState().set({ failure: null, webgl: true })}>Try again</button></div>}
         <Chapter t={0} className="hero">
           <h1 id="top"><span>Revival</span></h1>
           <p className="lede">Thirty-seven square metres of silk, and one car underneath.</p>
@@ -82,6 +86,7 @@ export function Film({ onEnter, preload }: { onEnter: () => void; preload: () =>
           <h2 className="vast">{webgl ? 'Now it is yours to light' : 'Back where it started'}</h2>
           {webgl ? <button className="cta" onClick={onEnter} onPointerEnter={preload} onFocus={preload}>Walk around it</button> : <p>This browser cannot run the realtime view, so the film is the whole experience here.</p>}
           <footer>
+            <nav className="more" aria-label="More"><a href="making.html">How it was made</a>{API && <><a href="compare.html">Compare designs</a><a href="my-request.html">My request</a></>}</nav>
             <p>Revival is a fictional studio and a personal portfolio project. It is not affiliated with or endorsed by any car maker.</p>
             <p>Car: “{CREDIT.name}” by {CREDIT.author}, <a href="https://creativecommons.org/licenses/by/4.0/">{CREDIT.license}</a>, modified. Concrete: Poly Haven, CC0.</p>
           </footer>

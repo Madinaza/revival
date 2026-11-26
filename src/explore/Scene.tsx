@@ -1,7 +1,7 @@
 import { Suspense, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useStore } from '../state/store'
+import { realtimeFailed, useStore } from '../state/store'
 import { Studio } from './Studio'
 import { Car } from './Car'
 import { Atmosphere } from './Atmosphere'
@@ -16,7 +16,7 @@ export default function Scene() {
   return (
     <div className={`stage ${live ? 'is-live' : ''}`}>
       <Canvas shadows={{ type: THREE.PCFShadowMap }} dpr={1} gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }} camera={{ fov: START.fov, near: 0.1, far: 60, position: [...START.pos] }}
-        onCreated={({ gl }) => { gl.toneMapping = THREE.AgXToneMapping; gl.domElement.addEventListener('webglcontextlost', (e) => { if (!gl.domElement.isConnected) return; /* fiber releases the context on unmount */ e.preventDefault(); useStore.getState().set({ webgl: false, mode: 'film' }) }) }}>
+        onCreated={({ gl }) => { gl.toneMapping = THREE.AgXToneMapping; gl.domElement.addEventListener('webglcontextlost', (e) => { if (!gl.domElement.isConnected) return; /* fiber releases the context on unmount */ e.preventDefault(); realtimeFailed('The browser took the graphics card back from the 3D view.') }) }}>
         <Suspense fallback={null}><Studio /><Car /><Atmosphere /><Live /></Suspense>
         <CameraRig /><HotspotPins /><Monitor /><Effects />
       </Canvas>

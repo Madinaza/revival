@@ -4,6 +4,6 @@ export default defineConfig(({ mode }) => {
   const api = (process.env.VITE_API ?? loadEnv(mode, '.', 'VITE_').VITE_API) === '1', proxy = api ? { '/api': process.env.API_URL ?? 'http://localhost:8080' } : undefined
   return {
     plugins: [react()], base: './', server: { proxy }, preview: { proxy },
-    build: { target: 'es2022', chunkSizeWarningLimit: 1400, outDir: api ? 'dist-api' : 'dist', rollupOptions: { input: api ? ['index.html', 'admin.html'] : ['index.html'] } },
+    build: { target: 'es2022', chunkSizeWarningLimit: 1400, outDir: api ? 'dist-api' : 'dist', rollupOptions: { input: ['index.html', 'making.html', ...(api ? ['admin.html', 'car.html', 'compare.html', 'my-request.html'] : [])] } },
   }
 })

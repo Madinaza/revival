@@ -27,7 +27,7 @@ const pixels = (p) => p.evaluate(() => document.querySelector('.screen canvas').
 const pressed = (p, label) => p.locator('button', { hasText: new RegExp(`^${label}$`) }).first().getAttribute('aria-pressed')
 
 let p = await page()
-await runAxe(p, 'film, top'); await to(p, 1); await p.waitForTimeout(1500); await runAxe(p, 'film, end'); await to(p, 0)
+await runAxe(p, 'film, top'); await to(p, 1); await p.waitForTimeout(1500); await runAxe(p, 'film, end'); await to(p, 0); await p.waitForTimeout(500)
 await p.focus('.pull input'); for (let i = 0; i < 30; i++) await p.keyboard.press('ArrowRight'); await p.waitForTimeout(400)
 check('arrow keys on the slider scroll the film', (await p.evaluate(() => scrollY)) > 0)
 await to(p, 0.62); await p.waitForTimeout(900); const y0 = await p.evaluate(() => scrollY)

@@ -4,7 +4,7 @@ import { call, Problem, type Design, type Paged } from '../api/client'
 export type Status = 'NEW' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
 export const STATUS: Record<Status, string> = { NEW: 'New', CONFIRMED: 'Confirmed', COMPLETED: 'Completed', CANCELLED: 'Cancelled' }
 export interface Drive {
-  id: number; reference: string; name: string; email: string; phone: string | null; preferredDate: string; message: string | null
+  id: number; reference: string; name: string; email: string; phone: string | null; preferredDate: string | null; slotAt: string | null; message: string | null
   designCode: string | null; status: Status; staffNote: string | null; version: number; createdAt: string; updatedAt: string
 }
 /** A session that ended is reported once, and the sign-in sheet opens over whatever was being edited. */
@@ -31,6 +31,8 @@ export function useLoad<T>(path: string) {
 const D = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), T = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 export const day = (iso: string) => D.format(new Date(iso.length === 10 ? `${iso}T12:00:00` : iso))
 export const moment = (iso: string) => T.format(new Date(iso))
+const S = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })
+export const drivesAt = (d: Pick<Drive, 'slotAt' | 'preferredDate'>) => (d.slotAt ? S.format(new Date(d.slotAt)) : d.preferredDate ? `${day(d.preferredDate)}, no time` : '')
 export function Pager({ of, go }: { of: Paged<unknown>; go: (page: number) => void }) {
   const last = Math.max(0, Math.ceil(of.total / of.size) - 1)
   if (!last) return null

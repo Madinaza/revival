@@ -22,12 +22,12 @@ class SecurityConfig {
         return http
             .authorizeHttpRequests(a -> a
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/api/catalog", "/api/designs/*", "/api/session", "/actuator/health").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/designs", "/api/test-drives").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/catalog", "/api/availability", "/api/designs/*", "/api/session", "/actuator/health").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/designs", "/api/test-drives", "/api/my-request", "/api/my-request/*").permitAll()
                 .requestMatchers("/error").permitAll()
                 .anyRequest().denyAll())
             // Public forms carry no session, so there is nothing for a forged request to abuse.
-            .csrf(c -> c.spa().ignoringRequestMatchers("/api/designs", "/api/test-drives"))
+            .csrf(c -> c.spa().ignoringRequestMatchers("/api/designs", "/api/test-drives", "/api/my-request", "/api/my-request/*"))
             .formLogin(f -> f.loginProcessingUrl("/api/login")
                 .successHandler((req, res, who) -> res.setStatus(204))
                 .failureHandler((req, res, e) -> res.setStatus(401)))

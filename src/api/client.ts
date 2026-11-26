@@ -7,7 +7,7 @@ export interface OptionItem {
   metalness: number | null; roughness: number | null; clearcoat: number | null; active: boolean; position: number; version: number
 }
 export type Catalog = Record<Kind, OptionItem[]>
-export interface Design { code: string; paint: OptionItem; finish: OptionItem; wheels: OptionItem; headlights: boolean; taillights: boolean; totalCents: number; createdAt: string }
+export interface Design { code: string; paint: OptionItem; finish: OptionItem; wheels: OptionItem; headlights: boolean; taillights: boolean; totalCents: number; prices: { base: number; paint: number; finish: number; wheels: number } | null; createdAt: string }
 export interface Paged<T> { items: T[]; page: number; size: number; total: number }
 
 export class Problem extends Error {

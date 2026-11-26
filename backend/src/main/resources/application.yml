@@ -20,6 +20,8 @@ server:
       secure: ${COOKIE_SECURE:true}
 management.endpoints.web.exposure.include: health
 revival:
+  booking:
+    zone: ${STUDIO_ZONE:Europe/Berlin}
   admin:
     username: ${ADMIN_USERNAME:}
     password: ${ADMIN_PASSWORD:}

@@ -17,7 +17,7 @@ export function Designs() {
   )
 }
 interface Entry { at: string; actor: string; action: string; subject: string; detail: string }
-const ACTION: Record<string, string> = { 'request.handled': 'handled', 'option.changed': 'changed', 'option.created': 'added' }
+const ACTION: Record<string, string> = { 'request.handled': 'handled', 'option.changed': 'changed', 'option.created': 'added', 'request.moved': 'moved', 'request.cancelled': 'cancelled', 'time.closed': 'closed', 'time.opened': 'opened', 'hours.changed': 'changed' }
 export function History() {
   const [page, setPage] = useState(0), { data, error } = useLoad<Paged<Entry>>(`api/admin/audit?page=${page}`)
   return (

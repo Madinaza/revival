@@ -32,8 +32,7 @@ class DesignController {
         var finish = pick(Kind.FINISH, "finish", in.finish);
         var wheels = pick(Kind.WHEELS, "wheels", in.wheels);
         int base = items.find(Kind.BASE, "coupe").map(OptionItem::priceCents).orElseThrow();
-        int total = Math.addExact(Math.addExact(base, paint.priceCents()), Math.addExact(finish.priceCents(), wheels.priceCents()));
-        return designs.save(new Design(Codes.unique(8, designs::existsByCode), paint, finish, wheels, in.headlights, in.taillights, total, clock.instant())).view();
+        return designs.save(new Design(Codes.unique(8, designs::existsByCode), paint, finish, wheels, in.headlights, in.taillights, base, clock.instant())).view();
     }
 
     @GetMapping("/api/designs/{code}")
