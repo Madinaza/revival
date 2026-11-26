@@ -1,6 +1,6 @@
 import { Component, Suspense, lazy, useCallback, useEffect, type ReactNode } from 'react'
 import { hasWebGL2, initialTier, tierLocked } from './lib/capabilities'
-import { applyCatalog, applyDesign, useStore } from './state/store'
+import { applyCatalog, applyDesign, realtimeFailed, useStore } from './state/store'
 import { API, call, type Catalog, type Design } from './api/client'
 import { Film } from './ui/Film'
 import { Explore } from './ui/Explore'
@@ -11,11 +11,11 @@ let asked = false
 class Boundary extends Component<{ children: ReactNode }, { bad: boolean }> {
   state = { bad: false }
   static getDerivedStateFromError() { return { bad: true } }
-  componentDidCatch() { useStore.getState().set({ webgl: false, mode: 'film' }) }
+  componentDidCatch(e: Error) { realtimeFailed(e.message || String(e)) }
   render() { return this.state.bad ? null : this.props.children }
 }
 export function App() {
-  const mode = useStore((s) => s.mode), live = useStore((s) => s.live)
+  const mode = useStore((s) => s.mode), live = useStore((s) => s.live), attempt = useStore((s) => s.attempt)
   useEffect(() => {
     const m = matchMedia('(prefers-reduced-motion: reduce)'), f = () => useStore.getState().set({ reduced: m.matches })
     f(); m.addEventListener('change', f)
@@ -34,7 +34,7 @@ export function App() {
   return (
     <>
       <Film onEnter={enter} preload={preload} />
-      {mode === 'explore' && <Boundary><Suspense fallback={null}><Scene /></Suspense>{live ? <Explore /> : <p className="wait" role="status">Bringing the car into the room</p>}</Boundary>}
+      {mode === 'explore' && <Boundary key={attempt}><Suspense fallback={null}><Scene /></Suspense>{live ? <Explore /> : <p className="wait" role="status">Bringing the car into the room</p>}</Boundary>}
     </>
   )
 }

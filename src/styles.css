@@ -82,6 +82,7 @@ legend { color: var(--dim); font-size: .9rem; padding: 0 0 .45rem; }
 .loader { position: fixed; inset: 0; z-index: 10; background: var(--night); display: grid; place-content: center; gap: 1.2rem; justify-items: center; transition: opacity 1s .1s; font: italic 400 1.5rem var(--display); }
 .loader.is-done { opacity: 0; pointer-events: none; }
 .loader progress { width: 12rem; height: 1px; appearance: none; border: 0; background: #ffffff22; } .loader progress::-webkit-progress-bar { background: #ffffff22; } .loader progress::-webkit-progress-value { background: var(--brass); } .loader progress::-moz-progress-bar { background: var(--brass); }
+.film > .failed { position: fixed; z-index: 7; top: calc(var(--pad) + 3rem); right: var(--pad); max-width: min(26rem, calc(100vw - 2 * var(--pad))); padding: .9rem 1.1rem; background: #100e0cf0; border: 1px solid #b3201d; border-radius: 4px; display: grid; gap: .4rem; justify-items: start; font-size: .95rem; } .failed span { display: block; color: #d3cab9; font-size: .88rem; padding-top: .3rem; overflow-wrap: anywhere; }
 .extra { color: var(--brass); }
 .order { border-top: 1px solid #ffffff1c; padding: .9rem 1.2rem 1.1rem; display: grid; gap: .7rem; }
 .total { max-width: none; display: flex; justify-content: space-between; align-items: baseline; } .total span { color: var(--dim); } .total strong { font: 400 1.7rem/1 var(--display); font-variant-numeric: lining-nums; }

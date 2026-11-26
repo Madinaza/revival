@@ -25,14 +25,25 @@ interface S {
   paint: Paint; finish: Choice; trim: Trim; head: boolean; tail: boolean; hotspot: string | null; sound: boolean
   /** Pixels of the realtime view covered by the open panel: from the right edge, and from the bottom. */
   inset: readonly [number, number]
+  /** Bumped to start the realtime view again from scratch. */
+  attempt: number
+  /** Why the realtime view gave up, shown in the film. */
+  failure: string | null
   set: (p: Partial<S>) => void
 }
 export const useStore = create<S>((set) => ({
   mode: 'film', tier: 'high', tierLocked: false, live: false, reduced: false, webgl: true,
   paints: PAINTS, finishes: FINISHES, trims: TRIMS, base: null,
-  paint: PAINTS[0], finish: FINISHES[0], trim: TRIMS[0], head: true, tail: true, hotspot: null, sound: false, inset: [0, 0], set: (p) => set(p),
+  paint: PAINTS[0], finish: FINISHES[0], trim: TRIMS[0], head: true, tail: true, hotspot: null, sound: false, inset: [0, 0], attempt: 0, failure: null, set: (p) => set(p),
 }))
 
+/** The realtime view failed. The first time it starts again at the lightest setting; after that the film carries on alone and says why. */
+export function realtimeFailed(reason: string) {
+  const s = useStore.getState()
+  console.error('Realtime view failed:', reason)
+  if (s.tier !== 'low') s.set({ tier: 'low', tierLocked: true, live: false, attempt: s.attempt + 1 })
+  else s.set({ webgl: false, mode: 'film', live: false, failure: reason })
+}
 const choice = (o: OptionItem): Choice => ({ code: o.code, name: o.name, price: o.priceCents })
 const paint = (o: OptionItem): Paint => ({ ...choice(o), color: o.color ?? '#808080', metal: o.metalness ?? 0, rough: o.roughness ?? 0.4, coat: o.clearcoat ?? 1 })
 const trim = (o: OptionItem): Trim => ({ ...choice(o), color: o.color ?? '#808080', rough: o.roughness ?? 0.3 })

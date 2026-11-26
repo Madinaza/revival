@@ -53,6 +53,8 @@ export function Film({ onEnter, preload }: { onEnter: () => void; preload: () =>
   }, [reduced, preload, leaving])
   // Entering the realtime view: run the film to its last frame, which shares the realtime camera.
   useEffect(() => { if (leaving && player.current) player.current.target = 1 }, [leaving])
+  const live = useStore((s) => s.live), failure = useStore((s) => s.failure)
+  useEffect(() => { if (live) player.current?.rest() }, [live])
 
   return (
     <main ref={root} className={`film ${leaving ? 'is-leaving' : ''}`} style={{ height: leaving ? '100lvh' : `${(LENGTH + 1) * 100}lvh` }} inert={leaving}>
@@ -63,6 +65,7 @@ export function Film({ onEnter, preload }: { onEnter: () => void; preload: () =>
           <a className="mark" href="#top">Revival</a>
           {webgl && <button className="link" onClick={onEnter} onPointerEnter={preload} onFocus={preload}>Walk around it</button>}
         </header>
+        {failure && <div className="failed" role="alert"><p>The 3D view stopped in this browser, so the film carries on alone. <span>Reason: {failure}</span></p><button className="link" onClick={() => useStore.getState().set({ failure: null, webgl: true })}>Try again</button></div>}
         <Chapter t={0} className="hero">
           <h1 id="top"><span>Revival</span></h1>
           <p className="lede">Thirty-seven square metres of silk, and one car underneath.</p>

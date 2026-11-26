@@ -60,6 +60,8 @@ export class FilmPlayer {
       this.stats.drawMs.push(performance.now() - t); if (this.stats.drawMs.length > 300) this.stats.drawMs.shift()
     }
   }
+  /** While the realtime view is up: keep only the frame on screen, so the two do not compete for graphics memory. */
+  rest() { for (const [f, b] of this.bitmaps) if (f !== this.drawn) { b.close(); this.bitmaps.delete(f) } }
   get frame() { return this.drawn }
   dispose() { cancelAnimationFrame(this.raf); this.abort.abort(); this.bitmaps.forEach((b) => b.close()); this.bitmaps.clear(); this.blobs.clear() }
 }
