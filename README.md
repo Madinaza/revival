@@ -60,19 +60,20 @@ URL switches for testing: `?tier=high|medium|low` fixes the realtime quality, `?
 
 ## Measurements
 
-Taken on 25 November 2026 on a MacBook Air (Apple M5, 32 GB, macOS 26.6) with headless Chrome 158 on the GPU, against a local production build. The phone column is Chrome's phone emulation on the same Mac, not a phone. The display refresh limits both to 60 fps.
+Taken on 26 November 2026 on a MacBook Air (Apple M5, 32 GB, macOS 26.6, on battery) with headless Chrome 158 on the GPU, against a local production build, three runs each with the GPU otherwise idle. The phone column is Chrome's phone emulation on the same Mac, not a phone. The display refresh limits both to 60 fps.
 
 | | Desktop 1440 × 810 | Phone emulation 390 × 844 |
 |---|---|---|
-| Frame interval while scrubbing the film (median / p95 / worst) | 16.7 / 16.8 / 16.8 ms | 16.7 / 16.7 / 16.8 ms |
-| Frame interval in the realtime view (median / p95 / worst) | 16.7 / 18.6 / 18.9 ms | 16.7 / 18.1 / 18.7 ms |
-| Realtime draw calls / triangles per frame, all passes | 130 / 1.23 M | 75 / 0.62 M |
+| Frame interval while scrubbing the film (median / p95 / worst) | 16.7 / 16.7–16.8 / 16.8 ms | 16.7 / 16.7 / 16.8 ms |
+| Frame interval in the realtime view (median / p95 / worst) | 16.7 / 16.9–17.2 / 17.0–17.6 ms | 16.7 / 17.2–17.3 / 17.6–17.8 ms |
+| Realtime draw calls / triangles per frame, all passes | 131 / 1.23 M | 75 / 0.62 M |
 | Realtime quality tier, pixel ratio | high, 1 | medium, 1 |
-| Entering the realtime view | 1.4 s | 1.3 s |
 | Film download, all 320 frames | 12.5 MB | 6.1 MB |
 | Console errors, horizontal overflow | none | none |
 
-First frame appeared in 80 to 140 ms locally. On the live GitHub Pages site, over one home connection of unmeasured speed and a cold cache, one run each showed the first frame after 0.43 s (desktop) and 0.61 s (phone emulation), and the complete film after 8.6 s and 8.4 s; it can be scrubbed before that. The same checks pass there. Initial JavaScript is 76 KB gzipped; Three.js and the scene add 395 KB gzipped and the car model 1.6 MB, only when a visitor heads for the realtime view.
+With another program rendering on the same GPU, the realtime view dropped well below 60 fps in both this build and the one before it.
+
+First frame appeared in 76 to 128 ms locally. On the live GitHub Pages site, over one home connection of unmeasured speed and a cold cache, one run each showed the first frame after 0.43 s (desktop) and 0.61 s (phone emulation), and the complete film after 8.6 s and 8.4 s; it can be scrubbed before that. The same checks pass there. Initial JavaScript is 76 KB gzipped; Three.js and the scene add 395 KB gzipped and the car model 1.6 MB, only when a visitor heads for the realtime view.
 
 Automated checks: 22 of 22 pass, including axe (WCAG 2 A/AA, 2.1 AA, 2.2 AA rules) with no violations in the film, the realtime view and the fallback. Axe could not judge the contrast of text over imagery; that was reviewed by eye. 14 of 14 unit tests pass.
 
